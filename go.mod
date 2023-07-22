@@ -1,0 +1,15 @@
+module github.com/talios/find-dupe-music
+
+go 1.20
+
+require (
+	github.com/dhowden/tag v0.0.0-20230630033851-978a0926ee25
+	github.com/stretchr/testify v1.8.4
+	golang.org/x/exp v0.0.0-20230728194245-b0cb94b80691
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
