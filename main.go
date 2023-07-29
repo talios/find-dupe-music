@@ -94,9 +94,9 @@ func main() {
 			slog.Info("Checking for duplicate music", "albums",
 				albumCount.Load(), "tracks", currentCount, "dupes", dupeCount.Load(), "file", file)
 
-			go func() {
-				processFile(dupes, file)
-			}()
+			go func(fileToProcess string) {
+				processFile(dupes, fileToProcess)
+			}(file)
 		}
 
 	}
