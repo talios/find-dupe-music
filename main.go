@@ -17,6 +17,8 @@ import (
 	"golang.org/x/exp/slog"
 )
 
+const ReadWriteAll = 0644
+
 var validFileRegex *regexp.Regexp
 var multiDiscAlbumRegex *regexp.Regexp
 
@@ -31,7 +33,7 @@ func init() {
 	validFileRegex = regexp.MustCompile(`.*\.(alac|flac|mp3|m4p|m4a)$`)
 	multiDiscAlbumRegex = regexp.MustCompile(`(.*)/CD\d+$`)
 
-	logFile, err := os.OpenFile("dupes.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	logFile, err := os.OpenFile("dupes.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, ReadWriteAll)
 	if err != nil {
 		panic(err)
 	}
@@ -44,9 +46,12 @@ func init() {
 func findMusicFiles(paths []string) <-chan string {
 	wg := &sync.WaitGroup{}
 	ch := make(chan string)
+
 	for pathIdx := range paths {
 		path := paths[pathIdx]
+
 		wg.Add(1)
+
 		go func() {
 			slog.Info("Scanning for duplicates", "path", path)
 
@@ -57,8 +62,10 @@ func findMusicFiles(paths []string) <-chan string {
 					fqnFile, _ := filepath.Abs(path + "/" + file)
 					ch <- fqnFile
 				}
+
 				return nil
 			})
+
 			slog.Info("Finnished scanning for duplicates", "path", path)
 			wg.Done()
 		}()
@@ -79,12 +86,12 @@ func main() {
 	files := findMusicFiles(paths)
 
 	for file := range files {
-
 		currentCount := trackCount.Add(1)
 		fqnDir := sanitizePath(file)
 
 		pathMutex.Lock()
 		freshPath := !visitedPaths[fqnDir]
+
 		if freshPath {
 			visitedPaths[fqnDir] = true
 		}
@@ -98,30 +105,26 @@ func main() {
 				processFile(dupes, fileToProcess)
 			}(file)
 		}
-
 	}
 
 	slog.Info("Finnished.")
-
 }
 
-func processFile(dupes map[string][]string, file string) {
+func processFile(dupes map[string][]string, filename string) {
+	fqnDir := sanitizePath(filename)
 
-	fqnDir := sanitizePath(file)
-
-	f, err := os.Open(file)
+	file, err := os.Open(filename)
 	if err != nil {
 		slog.Error("Error while opening file", "error", err)
 	}
-	defer f.Close()
+	defer file.Close()
 
-	meta, err := tag.ReadFrom(f)
+	meta, err := tag.ReadFrom(file)
 	if err != nil {
 		slog.Error("Error while reading tag from file", "error", err)
 	}
 
 	if meta != nil {
-
 		key := generateTagKey(meta)
 
 		dupeMutex.Lock()
@@ -144,36 +147,39 @@ func processFile(dupes map[string][]string, file string) {
 	}
 }
 
-func generateTagKey(m tag.Metadata) string {
-	artistKey := m.AlbumArtist()
+func generateTagKey(metadata tag.Metadata) string {
+	artistKey := metadata.AlbumArtist()
 	if artistKey == "" {
-		artistKey = m.Artist()
+		artistKey = metadata.Artist()
 	}
 
-	key := artistKey + ":" + m.Album()
+	key := artistKey + ":" + metadata.Album()
+
 	return key
 }
 
 func sanitizePath(file string) string {
 	sanitized := filepath.Dir(file)
 	sanitized = multiDiscAlbumRegex.ReplaceAllString(sanitized, "$1")
+
 	return sanitized
 }
 
 func isValidFile(file string) bool {
 	lower := strings.ToLower(file)
+
 	return validFileRegex.MatchString(lower)
 }
 
 func displayDupes(dupes map[string][]string) {
-
-	file, err := os.OpenFile("dupes.txt", os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("dupes.txt", os.O_CREATE|os.O_WRONLY, ReadWriteAll)
 	if err != nil {
 		slog.Error("failed creating file", "error", err)
 	}
-	datawriter := bufio.NewWriter(file)
 
+	datawriter := bufio.NewWriter(file)
 	_, err = datawriter.WriteString("Duplicate Music Report\n\n")
+
 	if err != nil {
 		panic(err)
 	}
@@ -182,10 +188,10 @@ func displayDupes(dupes map[string][]string) {
 	for k := range dupes {
 		keys = append(keys, k)
 	}
+
 	sort.Strings(keys)
 
 	for _, dupe := range keys {
-
 		if len(dupes[dupe]) > 1 {
 			_, err := datawriter.WriteString("Found duplicates for " + dupe + "\n")
 			if err != nil {
@@ -201,7 +207,7 @@ func displayDupes(dupes map[string][]string) {
 			}
 		}
 	}
+
 	datawriter.Flush()
 	file.Close()
-
 }

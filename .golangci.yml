@@ -1,0 +1,123 @@
+run:
+  run:
+  timeout: 5m
+  concurrency: 4
+  allow-parallel-runners: false
+  modules-download-mode: mod
+  tests: false
+  skip-dirs:
+    - mocks
+  go: "1.20"
+
+linters:
+  disable-all: true
+  fast: false
+  enable:
+    - gosimple
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - bidichk
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - errchkjson
+    - errname
+    - errorlint
+    - exportloopref
+    - forcetypeassert
+    - funlen
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - goimports
+    - gomnd
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - lll
+    - maintidx
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - revive
+    - stylecheck
+    - tenv
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - varnamelen
+    - whitespace
+    - wsl
+  run:
+    skip-files:
+      - ".*_test.go$"
+
+linters-settings:
+  lll:
+    line-length: 120
+  funlen:
+    lines: 75
+    statements: 60
+  govet:
+    check-shadowing: true
+  goconst:
+    min-len: 4
+    min-occurances: 3
+    ignore-tests: true
+  whitespace:
+    multi-func: false
+    multi-if: true
+  gocyclo:
+    min-complexity: 50
+  cyclop:
+    skip-tests: true
+    max-complexity: 15
+  dogsled:
+    max-blank-identifiers: 2
+  errorlint:
+    errorf: true
+  godot:
+    period: true
+    capital: true
+  nestif:
+    min-complexity: 6
+  gci:
+    skip-generated: true
+  gocognit:
+    min-complexity: 30
+  varnamelen:
+    min-name-length: 2
+    check-return: true
+  revive:
+    severity: warning
+    rules:
+      - name: atomic
+      - name: confusing-naming
+      - name: duplicated-imports
+
+issues:
+  max-issues-per-linter: 50
+  max-same-issues: 3
