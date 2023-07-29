@@ -173,7 +173,10 @@ func displayDupes(dupes map[string][]string) {
 	}
 	datawriter := bufio.NewWriter(file)
 
-	datawriter.WriteString("Duplicate Music Report\n\n")
+	_, err = datawriter.WriteString("Duplicate Music Report\n\n")
+	if err != nil {
+		panic(err)
+	}
 
 	keys := make([]string, 0, len(dupes))
 	for k := range dupes {
@@ -184,10 +187,17 @@ func displayDupes(dupes map[string][]string) {
 	for _, dupe := range keys {
 
 		if len(dupes[dupe]) > 1 {
-			datawriter.WriteString("Found duplicates for " + dupe + "\n")
+			_, err := datawriter.WriteString("Found duplicates for " + dupe + "\n")
+			if err != nil {
+				panic(err)
+			}
+
 			dupePaths := dupes[dupe]
 			for dupePath := range dupePaths {
-				datawriter.WriteString("  - " + dupePaths[dupePath] + "\n")
+				_, err := datawriter.WriteString("  - " + dupePaths[dupePath] + "\n")
+				if err != nil {
+					panic(err)
+				}
 			}
 		}
 	}
