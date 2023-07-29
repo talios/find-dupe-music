@@ -200,7 +200,10 @@ func displayDupes(dupes map[string][]string) {
 
 			var sortedDupePaths []string
 			sortedDupePaths = append(sortedDupePaths, dupes[dupe]...)
-			sort.Strings(sortedDupePaths)
+
+			sort.Slice(sortedDupePaths, func(i, j int) bool {
+				return strings.ToLower(sortedDupePaths[i]) < strings.ToLower(sortedDupePaths[j])
+			})
 
 			for dupePath := range sortedDupePaths {
 				_, err := datawriter.WriteString("  - " + sortedDupePaths[dupePath] + "\n")
