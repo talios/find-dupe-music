@@ -198,9 +198,12 @@ func displayDupes(dupes map[string][]string) {
 				panic(err)
 			}
 
-			dupePaths := dupes[dupe]
-			for dupePath := range dupePaths {
-				_, err := datawriter.WriteString("  - " + dupePaths[dupePath] + "\n")
+			var sortedDupePaths []string
+			sortedDupePaths = append(sortedDupePaths, dupes[dupe]...)
+			sort.Strings(sortedDupePaths)
+
+			for dupePath := range sortedDupePaths {
+				_, err := datawriter.WriteString("  - " + sortedDupePaths[dupePath] + "\n")
 				if err != nil {
 					panic(err)
 				}
