@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"golang.org/x/exp/maps"
 	"io"
 	"io/fs"
 	"os"
@@ -184,10 +185,7 @@ func displayDupes(dupes map[string][]string) {
 		panic(err)
 	}
 
-	keys := make([]string, 0, len(dupes))
-	for k := range dupes {
-		keys = append(keys, k)
-	}
+	keys := maps.Keys(dupes)
 
 	sort.Strings(keys)
 
@@ -201,9 +199,7 @@ func displayDupes(dupes map[string][]string) {
 			var sortedDupePaths []string
 			sortedDupePaths = append(sortedDupePaths, dupes[dupe]...)
 
-			sort.Slice(sortedDupePaths, func(i, j int) bool {
-				return strings.ToLower(sortedDupePaths[i]) < strings.ToLower(sortedDupePaths[j])
-			})
+			slices.Sort(sortedDupePaths)
 
 			for dupePath := range sortedDupePaths {
 				_, err := datawriter.WriteString("  - " + sortedDupePaths[dupePath] + "\n")
