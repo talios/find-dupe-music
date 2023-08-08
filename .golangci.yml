@@ -7,7 +7,7 @@ run:
   tests: false
   skip-dirs:
     - mocks
-  go: "1.20"
+  go: "1.21"
 
 linters:
   disable-all: true
