@@ -2,12 +2,14 @@ package main
 
 import (
 	"bufio"
-	"golang.org/x/exp/maps"
 	"io"
 	"io/fs"
+
 	"os"
 	"path/filepath"
 	"regexp"
+
+	"golang.org/x/exp/maps"
 	"sort"
 	"strings"
 	"sync"
