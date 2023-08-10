@@ -17,7 +17,7 @@ import (
 
 	"github.com/dhowden/tag"
 	"golang.org/x/exp/slices"
-	"golang.org/x/exp/slog"
+	"log/slog"
 )
 
 const ReadWriteAll = 0644
