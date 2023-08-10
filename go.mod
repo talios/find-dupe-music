@@ -6,7 +6,7 @@ require (
 	dagger.io/dagger v0.8.1
 	github.com/dhowden/tag v0.0.0-20230630033851-978a0926ee25
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20230807204917-050eac23e9de
+	golang.org/x/exp v0.0.0-20230810033253-352e893a4cad
 )
 
 require (
