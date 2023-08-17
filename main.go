@@ -4,20 +4,21 @@ import (
 	"bufio"
 	"io"
 	"io/fs"
+	"sort"
 
 	"os"
 	"path/filepath"
 	"regexp"
 
-	"golang.org/x/exp/maps"
-	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/dhowden/tag"
-	"golang.org/x/exp/slices"
 	"log/slog"
+	"slices"
+
+	"github.com/dhowden/tag"
+	csmap "github.com/mhmtszr/concurrent-swiss-map"
 )
 
 const ReadWriteAll = 0644
@@ -28,9 +29,6 @@ var multiDiscAlbumRegex *regexp.Regexp
 var albumCount atomic.Int32
 var trackCount atomic.Int32
 var dupeCount atomic.Int32
-
-var dupeMutex = &sync.RWMutex{}
-var pathMutex = &sync.RWMutex{}
 
 func init() {
 	validFileRegex = regexp.MustCompile(`.*\.(alac|flac|mp3|m4p|m4a)$`)
@@ -84,21 +82,21 @@ func findMusicFiles(paths []string) <-chan string {
 
 func main() {
 	paths := os.Args[1:]
-	dupes := make(map[string][]string)
-	visitedPaths := make(map[string]bool)
+
+	dupes := csmap.Create[string, []string]()
+	visitedPaths := csmap.Create[string, bool]()
+
 	files := findMusicFiles(paths)
 
 	for file := range files {
 		currentCount := trackCount.Add(1)
 		fqnDir := sanitizePath(file)
 
-		pathMutex.Lock()
-		freshPath := !visitedPaths[fqnDir]
+		freshPath := !visitedPaths.Has(fqnDir)
 
 		if freshPath {
-			visitedPaths[fqnDir] = true
+			visitedPaths.Store(fqnDir, true)
 		}
-		pathMutex.Unlock()
 
 		if freshPath {
 			slog.Info("Checking for duplicate music", "albums",
@@ -113,7 +111,7 @@ func main() {
 	slog.Info("Finnished.")
 }
 
-func processFile(dupes map[string][]string, filename string) {
+func processFile(dupes *csmap.CsMap[string, []string], filename string) {
 	fqnDir := sanitizePath(filename)
 
 	file, err := os.Open(filename)
@@ -130,12 +128,11 @@ func processFile(dupes map[string][]string, filename string) {
 	if meta != nil {
 		key := generateTagKey(meta)
 
-		dupeMutex.Lock()
-		items := dupes[key]
+		items, _ := dupes.Load(key)
 
 		if !slices.Contains(items, fqnDir) {
 			items = append(items, fqnDir)
-			dupes[key] = items
+			dupes.Store(key, items)
 
 			if len(items) == 1 {
 				albumCount.Add(1)
@@ -144,7 +141,6 @@ func processFile(dupes map[string][]string, filename string) {
 				displayDupes(dupes)
 			}
 		}
-		dupeMutex.Unlock()
 	} else {
 		slog.Warn("Missing metadata", "file", file)
 	}
@@ -174,7 +170,7 @@ func isValidFile(file string) bool {
 	return validFileRegex.MatchString(lower)
 }
 
-func displayDupes(dupes map[string][]string) {
+func displayDupes(dupes *csmap.CsMap[string, []string]) {
 	file, err := os.OpenFile("dupes.txt", os.O_CREATE|os.O_WRONLY, ReadWriteAll)
 	if err != nil {
 		slog.Error("failed creating file", "error", err)
@@ -187,19 +183,24 @@ func displayDupes(dupes map[string][]string) {
 		panic(err)
 	}
 
-	keys := maps.Keys(dupes)
+	keys := make([]string, 0, dupes.Count())
+	dupes.Range(func(k string, v []string) (stop bool) {
+		keys = append(keys, k)
+		return false
+	})
 
 	sort.Strings(keys)
 
 	for _, dupe := range keys {
-		if len(dupes[dupe]) > 1 {
+		actual, _ := dupes.Load(dupe)
+		if len(actual) > 1 {
 			_, err := datawriter.WriteString("Found duplicates for " + dupe + "\n")
 			if err != nil {
 				panic(err)
 			}
 
 			var sortedDupePaths []string
-			sortedDupePaths = append(sortedDupePaths, dupes[dupe]...)
+			sortedDupePaths = append(sortedDupePaths, actual...)
 
 			slices.Sort(sortedDupePaths)
 
