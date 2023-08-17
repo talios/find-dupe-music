@@ -20,7 +20,8 @@ func main() {
 	golang := client.Container().
 		From("golang:1.21").
 		WithMountedDirectory("/src", src).
-		WithWorkdir("/src")
+		WithWorkdir("/src").
+		WithExec([]string{"go", "get"})
 
 	path := "build/target"
 	outpath := filepath.Join(".", path)
