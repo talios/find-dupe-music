@@ -26,6 +26,8 @@ const ReadWriteAll = 0644
 var validFileRegex *regexp.Regexp
 var multiDiscAlbumRegex *regexp.Regexp
 
+var albumEditionRegex *regexp.Regexp
+
 var albumCount atomic.Int32
 var trackCount atomic.Int32
 var dupeCount atomic.Int32
@@ -33,6 +35,7 @@ var dupeCount atomic.Int32
 func init() {
 	validFileRegex = regexp.MustCompile(`.*\.(alac|flac|mp3|m4p|m4a)$`)
 	multiDiscAlbumRegex = regexp.MustCompile(`(.*)/CD\d+$`)
+	albumEditionRegex = regexp.MustCompile(`(.*)(\s\(.*\)\s)(.*)`)
 
 	logFile, err := os.OpenFile("dupes.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, ReadWriteAll)
 	if err != nil {
@@ -80,7 +83,7 @@ func findMusicFiles(paths []string) <-chan string {
 	return ch
 }
 
-func ScanFiles(paths []string) {
+func ScanFiles(skipEditions bool, paths []string) {
 
 	dupes := csmap.Create[string, []string]()
 	visitedPaths := csmap.Create[string, bool]()
@@ -89,7 +92,7 @@ func ScanFiles(paths []string) {
 
 	for file := range files {
 		currentCount := trackCount.Add(1)
-		fqnDir := sanitizePath(file)
+		fqnDir := sanitizePath(skipEditions, file)
 
 		freshPath := !visitedPaths.Has(fqnDir)
 
@@ -102,16 +105,17 @@ func ScanFiles(paths []string) {
 				albumCount.Load(), "tracks", currentCount, "dupes", dupeCount.Load(), "file", file)
 
 			go func(fileToProcess string) {
-				processFile(dupes, fileToProcess)
+				processFile(skipEditions, dupes, fileToProcess)
 			}(file)
 		}
 	}
 
+	displayDupes(dupes)
 	slog.Info("Finnished.")
 }
 
-func processFile(dupes *csmap.CsMap[string, []string], filename string) {
-	fqnDir := sanitizePath(filename)
+func processFile(skipEditions bool, dupes *csmap.CsMap[string, []string], filename string) {
+	fqnDir := sanitizePath(skipEditions, filename)
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -145,6 +149,10 @@ func processFile(dupes *csmap.CsMap[string, []string], filename string) {
 	}
 }
 
+func resolveEditions(album string) string {
+	return albumEditionRegex.ReplaceAllString(album, "$1 $3")
+}
+
 func generateTagKey(metadata tag.Metadata) string {
 	artistKey := metadata.AlbumArtist()
 	if artistKey == "" {
@@ -156,9 +164,13 @@ func generateTagKey(metadata tag.Metadata) string {
 	return key
 }
 
-func sanitizePath(file string) string {
+func sanitizePath(skipEditions bool, file string) string {
 	sanitized := filepath.Dir(file)
 	sanitized = multiDiscAlbumRegex.ReplaceAllString(sanitized, "$1")
+
+	if skipEditions {
+		sanitized = resolveEditions(sanitized)
+	}
 
 	return sanitized
 }

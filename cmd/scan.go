@@ -1,13 +1,11 @@
-/*
-Copyright © 2023 NAME HERE <EMAIL ADDRESS>
-*/
 package cmd
 
 import (
-	"find"
-
 	"github.com/spf13/cobra"
+	"github.com/talios/find-dupe-music/find"
 )
+
+var SkipEditions bool
 
 // scanCmd represents the scan command
 var scanCmd = &cobra.Command{
@@ -20,20 +18,12 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		find.ScanFiles(args)
+		find.ScanFiles(SkipEditions, args)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(scanCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// scanCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// scanCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	scanCmd.Flags().BoolVarP(&SkipEditions, "skip-editions", "s", false, "Skip different album editions from duplicate checks")
 }

@@ -7,12 +7,13 @@ import (
 )
 
 func TestSanitizeName(t *testing.T) {
-	assert.Equal(t, "/tmp/Artist/Album", sanitizePath("/tmp/Artist/Album/CD1/test.mp3"), "they should be equal")
-	assert.Equal(t, "/tmp/Artist/Album", sanitizePath("/tmp/Artist/Album/CD10/test.mp3"), "they should be equal")
+	assert.Equal(t, "/tmp/Artist/Album", sanitizePath(false, "/tmp/Artist/Album/CD1/test.mp3"), "they should be equal")
+	assert.Equal(t, "/tmp/Artist/Album", sanitizePath(false, "/tmp/Artist/Album/CD10/test.mp3"), "they should be equal")
 }
 
 func TestEditionMatching(t *testing.T) {
-	assert.Equal(t, "Album Test", resolveEditions("Album (Instrumentals) Test"), "they should be equal")
+	assert.Equal(t, "/tmp/Artist/Album Test", resolveEditions("/tmp/Artist/Album (Instrumentals) Test"), "they should be equal")
+	assert.Equal(t, "/tmp/Artist/Album Test", sanitizePath(true, "/tmp/Artist/Album (Instrumentals) Test/test.mp3"), "they should be equal")
 }
 
 func TestValidFile(t *testing.T) {
