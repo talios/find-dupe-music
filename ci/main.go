@@ -15,13 +15,21 @@ func main() {
 
 	defer client.Close()
 
-	src := client.Host().Directory(".")
+	src := client.Host().Directory(".", dagger.HostDirectoryOpts{
+		Exclude: []string{"ci", "build", ".git"},
+	})
 
 	golang := client.Container().
 		From("golang:1.21").
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
 		WithExec([]string{"go", "get"})
+
+	// Run tests and discard the resulting container, actual build will run separate
+	// from tests.
+	golang.
+		WithExec([]string{"go", "get", "-t"}).
+		WithExec([]string{"go", "test", "-coverpkg=./...", "./..."})
 
 	path := "build/target"
 	outpath := filepath.Join(".", path)
@@ -47,5 +55,5 @@ func buildIt(container *dagger.Container, os string, arch string, path string) *
 	return container.
 		WithEnvVariable("GOOS", os).
 		WithEnvVariable("GOARCH", arch).
-		WithExec([]string{"go", "build", "-o", path + "/" + os})
+		WithExec([]string{"go", "build", "-o", path + "/" + os + "/find-dupe-music"})
 }

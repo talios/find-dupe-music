@@ -3,7 +3,7 @@ module github.com/talios/find-dupe-music
 go 1.21
 
 require (
-	dagger.io/dagger v0.8.3
+	dagger.io/dagger v0.8.4
 	github.com/dhowden/tag v0.0.0-20230630033851-978a0926ee25
 	github.com/mhmtszr/concurrent-swiss-map v1.0.2
 	github.com/stretchr/testify v1.8.4
