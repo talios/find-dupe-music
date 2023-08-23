@@ -19,6 +19,7 @@ import (
 
 	"github.com/dhowden/tag"
 	csmap "github.com/mhmtszr/concurrent-swiss-map"
+	"github.com/spf13/viper"
 )
 
 const ReadWriteAll = 0644
@@ -26,16 +27,14 @@ const ReadWriteAll = 0644
 var validFileRegex *regexp.Regexp
 var multiDiscAlbumRegex *regexp.Regexp
 
-var albumEditionRegex *regexp.Regexp
-
 var albumCount atomic.Int32
 var trackCount atomic.Int32
 var dupeCount atomic.Int32
+var skipCount atomic.Int32
 
 func init() {
 	validFileRegex = regexp.MustCompile(`.*\.(alac|flac|mp3|m4p|m4a)$`)
 	multiDiscAlbumRegex = regexp.MustCompile(`(.*)/CD\d+$`)
-	albumEditionRegex = regexp.MustCompile(`(.*)(\s\(.*\)\s)(.*)`)
 
 	logFile, err := os.OpenFile("dupes.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, ReadWriteAll)
 	if err != nil {
@@ -83,29 +82,22 @@ func findMusicFiles(paths []string) <-chan string {
 	return ch
 }
 
-func ScanFiles(skipEditions bool, paths []string) {
-
+func ScanFiles(ignoreSkips bool, paths []string) {
 	dupes := csmap.Create[string, []string]()
 	visitedPaths := csmap.Create[string, bool]()
 
 	files := findMusicFiles(paths)
 
 	for file := range files {
-		currentCount := trackCount.Add(1)
-		fqnDir := sanitizePath(skipEditions, file)
-
+		trackCount.Add(1)
+		fqnDir := sanitizePath(file)
 		freshPath := !visitedPaths.Has(fqnDir)
 
 		if freshPath {
 			visitedPaths.Store(fqnDir, true)
-		}
-
-		if freshPath {
-			slog.Info("Checking for duplicate music", "albums",
-				albumCount.Load(), "tracks", currentCount, "dupes", dupeCount.Load(), "file", file)
 
 			go func(fileToProcess string) {
-				processFile(skipEditions, dupes, fileToProcess)
+				processFile(ignoreSkips, dupes, fileToProcess)
 			}(file)
 		}
 	}
@@ -114,8 +106,8 @@ func ScanFiles(skipEditions bool, paths []string) {
 	slog.Info("Finnished.")
 }
 
-func processFile(skipEditions bool, dupes *csmap.CsMap[string, []string], filename string) {
-	fqnDir := sanitizePath(skipEditions, filename)
+func processFile(ignoreSkips bool, dupes *csmap.CsMap[string, []string], filename string) {
+	fqnDir := sanitizePath(filename)
 
 	file, err := os.Open(filename)
 	if err != nil {
@@ -128,29 +120,41 @@ func processFile(skipEditions bool, dupes *csmap.CsMap[string, []string], filena
 		slog.Error("Error while reading tag from file", "error", err)
 	}
 
-	if meta != nil {
-		key := generateTagKey(meta)
+	skips := viper.GetStringSlice("skip")
 
-		items, _ := dupes.Load(key)
-
-		if !slices.Contains(items, fqnDir) {
-			items = append(items, fqnDir)
-			dupes.Store(key, items)
-
-			if len(items) == 1 {
-				albumCount.Add(1)
-			} else {
-				dupeCount.Add(1)
-				displayDupes(dupes)
-			}
-		}
-	} else {
+	if meta == nil {
 		slog.Warn("Missing metadata", "file", file)
-	}
-}
 
-func resolveEditions(album string) string {
-	return albumEditionRegex.ReplaceAllString(album, "$1 $3")
+		return
+	}
+
+	key := generateTagKey(meta)
+	shouldBeSkipped := slices.Contains(skips, key)
+
+	if shouldBeSkipped && !ignoreSkips {
+		skipCount.Add(1)
+		slog.Warn("Skipping artist/album", "key", key, "filename", filename, "skipped", skipCount.Load())
+
+		return
+	}
+
+	slog.Info("Checking for duplicate music", "albums",
+		albumCount.Load(), "tracks", trackCount.Load(), "dupes", dupeCount.Load(), "skipped", skipCount.Load(),
+		"filename", filename)
+
+	items, _ := dupes.Load(key)
+
+	if !slices.Contains(items, fqnDir) {
+		items = append(items, fqnDir)
+		dupes.Store(key, items)
+
+		if len(items) == 1 {
+			albumCount.Add(1)
+		} else {
+			dupeCount.Add(1)
+			displayDupes(dupes)
+		}
+	}
 }
 
 func generateTagKey(metadata tag.Metadata) string {
@@ -164,13 +168,9 @@ func generateTagKey(metadata tag.Metadata) string {
 	return key
 }
 
-func sanitizePath(skipEditions bool, file string) string {
+func sanitizePath(file string) string {
 	sanitized := filepath.Dir(file)
 	sanitized = multiDiscAlbumRegex.ReplaceAllString(sanitized, "$1")
-
-	if skipEditions {
-		sanitized = resolveEditions(sanitized)
-	}
 
 	return sanitized
 }
@@ -195,8 +195,9 @@ func displayDupes(dupes *csmap.CsMap[string, []string]) {
 	}
 
 	keys := make([]string, 0, dupes.Count())
-	dupes.Range(func(k string, v []string) (stop bool) {
+	dupes.Range(func(k string, v []string) bool {
 		keys = append(keys, k)
+
 		return false
 	})
 
