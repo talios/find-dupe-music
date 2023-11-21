@@ -55,5 +55,6 @@ func buildIt(container *dagger.Container, os string, arch string, path string) *
 	return container.
 		WithEnvVariable("GOOS", os).
 		WithEnvVariable("GOARCH", arch).
+		WithEnvVariable("CGO_ENABLED", "0").
 		WithExec([]string{"go", "build", "-o", path + "/" + os + "/find-dupe-music"})
 }
