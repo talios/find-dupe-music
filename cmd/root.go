@@ -38,8 +38,8 @@ func init() {
 	rootCmd.PersistentFlags().StringArrayVar(&ScanPaths, "path", []string{},
 		"list of paths to scan for duplicate music")
 
-	viper.BindPFlag("skip", rootCmd.PersistentFlags().Lookup("skip"))
-	viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
+	_ = viper.BindPFlag("skip", rootCmd.PersistentFlags().Lookup("skip"))
+	_ = viper.BindPFlag("path", rootCmd.PersistentFlags().Lookup("path"))
 
 	viper.SetDefault("author", "Mark Derricutt <mark@talios.com>")
 	viper.SetDefault("license", "apache")

@@ -90,6 +90,7 @@ func ScanFiles(ignoreSkips bool, paths []string) {
 
 	for file := range files {
 		trackCount.Add(1)
+
 		fqnDir := sanitizePath(file)
 		freshPath := !visitedPaths.Has(fqnDir)
 
