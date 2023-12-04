@@ -23,29 +23,25 @@ func main() {
 		From("golang:1.21").
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
-		WithExec([]string{"go", "get"})
+		WithExec([]string{"go", "get"}).
+		WithExec([]string{"go", "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"})
 
 	// Run tests and discard the resulting container, actual build will run separate
 	// from tests.
-	golang.
+	_, err := golang.
 		WithExec([]string{"go", "get", "-t"}).
-		WithExec([]string{"go", "test", "-coverpkg=./...", "./..."})
+		WithExec([]string{"go", "mod", "tidy"}).
+		WithExec([]string{"/go/bin/golangci-lint", "run"}).
+		WithExec([]string{"go", "test", "-coverpkg=./...", "./..."}).
+		Sync(ctx)
+
+	if err != nil {
+		panic(err)
+	}
 
 	path := "build/target"
 	outpath := filepath.Join(".", path)
 	_ = os.MkdirAll(outpath, os.ModePerm)
-
-	//	version := "go1.21.0"
-	//	gobin := "/go/bin/" + version
-	//	gobin := "go"
-
-	//	build := golang.
-	//		WithExec([]string{"go", "install", "golang.org/dl/" + version + "@latest"}).
-	//		WithExec([]string{gobin, "download"}).
-	//		WithExec([]string{gobin, "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"}).
-	//		WithExec([]string{"/go/bin/golangci-lint", "run"}).
-	//		WithExec([]string{gobin, "get", "-u"}).
-	//		WithExec([]string{gobin, "mod", "tidy"})
 
 	_, _ = buildIt(golang, "darwin", "amd64", path).Directory(path).Export(ctx, path)
 	_, _ = buildIt(golang, "linux", "amd64", path).Directory(path).Export(ctx, path)
