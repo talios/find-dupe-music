@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/fs"
 	"sort"
+	"strconv"
 
 	"os"
 	"path/filepath"
@@ -141,7 +142,7 @@ func processFile(ignoreSkips bool, dupes *csmap.CsMap[string, []string], filenam
 
 	slog.Info("Checking for duplicate music", "albums",
 		albumCount.Load(), "tracks", trackCount.Load(), "dupes", dupeCount.Load(), "skipped", skipCount.Load(),
-		"filename", filename)
+		"filename", filename, "key", key)
 
 	items, _ := dupes.Load(key)
 
@@ -164,7 +165,7 @@ func generateTagKey(metadata tag.Metadata) string {
 		artistKey = metadata.Artist()
 	}
 
-	key := artistKey + ":" + metadata.Album()
+	key := artistKey + ":" + strconv.Itoa(metadata.Year()) + ":" + metadata.Album()
 
 	return key
 }
@@ -196,7 +197,7 @@ func displayDupes(dupes *csmap.CsMap[string, []string]) {
 	}
 
 	keys := make([]string, 0, dupes.Count())
-	dupes.Range(func(k string, v []string) bool {
+	dupes.Range(func(k string, _ []string) bool {
 		keys = append(keys, k)
 
 		return false

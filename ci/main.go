@@ -9,6 +9,10 @@ import (
 	"dagger.io/dagger"
 )
 
+const (
+	minimumCoverageLevel = "5"
+)
+
 func main() {
 	ctx := context.Background()
 	client, _ := dagger.Connect(ctx, dagger.WithLogOutput(os.Stdout))
@@ -20,19 +24,21 @@ func main() {
 	})
 
 	golang := client.Container().
-		From("golang:1.21").
+		From("golang:latest").
+		WithExec([]string{"go", "install", "github.com/gregoryv/uncover/cmd/uncover@latest"}).
+		WithExec([]string{"go", "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"}).
+		WithExec([]string{"go", "install", "github.com/go-critic/go-critic/cmd/gocritic@latest"}).
 		WithMountedDirectory("/src", src).
 		WithWorkdir("/src").
-		WithExec([]string{"go", "get"}).
-		WithExec([]string{"go", "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@latest"})
+		WithExec([]string{"go", "get", "-d", "-v", "./..."})
 
 	// Run tests and discard the resulting container, actual build will run separate
 	// from tests.
 	_, err := golang.
-		WithExec([]string{"go", "get", "-t"}).
-		WithExec([]string{"go", "mod", "tidy"}).
+		WithExec([]string{"go", "test", "-coverpkg=./...", "./...", "-coverprofile", "/tmp/c.out"}).
+		WithExec([]string{"uncover", "-min", minimumCoverageLevel, "/tmp/c.out"}).
 		WithExec([]string{"/go/bin/golangci-lint", "run"}).
-		WithExec([]string{"go", "test", "-coverpkg=./...", "./..."}).
+		WithExec([]string{"gocritic", "check", "-enableAll"}).
 		Sync(ctx)
 
 	if err != nil {
