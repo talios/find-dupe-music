@@ -50,6 +50,7 @@ func main() {
 	_ = os.MkdirAll(outpath, os.ModePerm)
 
 	_, _ = buildIt(golang, "darwin", "amd64", path).Directory(path).Export(ctx, path)
+	_, _ = buildIt(golang, "darwin", "arm64", path).Directory(path).Export(ctx, path)
 	_, _ = buildIt(golang, "linux", "amd64", path).Directory(path).Export(ctx, path)
 }
 
@@ -58,5 +59,5 @@ func buildIt(container *dagger.Container, os string, arch string, path string) *
 		WithEnvVariable("GOOS", os).
 		WithEnvVariable("GOARCH", arch).
 		WithEnvVariable("CGO_ENABLED", "0").
-		WithExec([]string{"go", "build", "-o", path + "/" + os + "/find-dupe-music"})
+		WithExec([]string{"go", "build", "-o", path + "/" + os + "/" + arch + "/find-dupe-music"})
 }

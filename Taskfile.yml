@@ -1,0 +1,25 @@
+# https://taskfile.dev
+
+version: '3'
+
+tasks:
+  update:
+    cmds:
+      - go get -u
+      - go get -u all
+      - go mod tidy
+  reformat:
+    cmds:
+      - go fmt
+  clean:
+    cmds:
+      - rm -rf target
+  build:
+    deps: [update, reformat]
+    cmds:
+      - dagger run go run ci/main.go
+
+  deploy:
+    deps: [clean, build]
+    cmds:
+      - cp build/target/linux/amd64/find-dupe-music /Volumes/Media\ Content/Plex\ Content/
