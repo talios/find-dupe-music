@@ -15,7 +15,7 @@ tasks:
     cmds:
       - rm -rf target
   build:
-    deps: [update, reformat]
+    deps: [reformat]
     cmds:
       - dagger run go run ci/main.go
 
