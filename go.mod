@@ -1,6 +1,6 @@
 module github.com/talios/find-dupe-music
 
-go 1.23
+go 1.23.1
 
 require (
 	dagger.io/dagger v0.13.0
