@@ -6,7 +6,7 @@ tasks:
   update:
     cmds:
       - go get -u
-      - go get -u all
+      # - go get -u all
       - go mod tidy
   reformat:
     cmds:
