@@ -1,34 +1,26 @@
 run:
-  run:
   timeout: 5m
   concurrency: 4
   allow-parallel-runners: false
   modules-download-mode: mod
   tests: false
-  skip-dirs:
-    - mocks
-  go: "1.21"
-
+  go: "1.26.1"
+usetesting.os-setenv: true
 linters:
   disable-all: true
   fast: false
   enable:
-    - gosimple
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - typecheck
-    - unused
     - bidichk
+    - copyloopvar
     - cyclop
     - decorder
     - dogsled
     - dupl
+    - err113
+    - errcheck
     - errchkjson
     - errname
     - errorlint
-    - exportloopref
     - forcetypeassert
     - funlen
     - gocognit
@@ -37,18 +29,20 @@ linters:
     - gocyclo
     - godot
     - godox
-    - goerr113
     - gofmt
     - goimports
-    - gomnd
     - gomoddirectives
     - gomodguard
     - goprintffuncname
     - gosec
+    - gosimple
+    - govet
+    - ineffassign
     - lll
     - maintidx
     - makezero
     - misspell
+    - mnd
     - nakedret
     - nestif
     - nilerr
@@ -61,19 +55,21 @@ linters:
     - prealloc
     - predeclared
     - revive
+    - staticcheck
     - stylecheck
-    - tenv
     - testpackage
     - thelper
     - tparallel
+    - typecheck
     - unconvert
     - unparam
+    - unused
     - varnamelen
     - whitespace
     - wsl
-  run:
-    skip-files:
-      - ".*_test.go$"
+  # run:
+  #   skip-files:
+  #     - ".*_test.go$"
 
 linters-settings:
   lll:
@@ -81,11 +77,8 @@ linters-settings:
   funlen:
     lines: 75
     statements: 60
-  govet:
-    check-shadowing: true
   goconst:
     min-len: 4
-    min-occurances: 3
     ignore-tests: true
   whitespace:
     multi-func: false
@@ -119,5 +112,7 @@ linters-settings:
       - name: duplicated-imports
 
 issues:
+  exclude-dirs:
+    - mocks
   max-issues-per-linter: 50
   max-same-issues: 3
